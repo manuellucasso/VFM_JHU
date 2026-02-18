@@ -70,7 +70,8 @@ delta_e_struct = struct();
 gauss_order_hex = gauss_order;           % Gauss order for the hex elements
 
 % Name of the cache file to store delta_e_struct
-cachefile_delta_e = 'delta_e_struct.mat';
+modelName = erase(mymodel, '.feb');      % Remove the extension from .feb 
+cachefile_delta_e = ['delta_e_struct_', modelName, '.mat'];
 
 % Deformation gradients for reference configuration
 [F_all, ~] = compute_deformation_gradient(model, ecoords0, edisp, gauss_order_hex);
@@ -92,9 +93,10 @@ nodedat_out = zeros(nnd, 7*nParam);      % (node, [index,x,y,z,ux,uy,uz])
 elemdat_out = zeros(nel, 19*nParam);     % (element, [index,...Fbar(9)...Fpre(9)...])
 
 % Construct the full paths using the VF directory
-nodeCachePath = fullfile(path.VF, 'nodedat_cached.csv');
-elemCachePath = fullfile(path.VF, 'elemdat_cached.csv');
+nodeCachePath = fullfile(path.VF, ['nodedat_cached_', modelName, '.csv']);
+elemCachePath = fullfile(path.VF, ['elemdat_cached_', modelName, '.csv']);
 
+% Checking if there is need to calculate the VF
 if totalRunCount == 1
     % First run for sweep: Perform FE simulation for each material property set
     NewVirtualWorkFlag = 1;
@@ -199,8 +201,8 @@ for param_ind = 1:nParam
     %--------------------------------------------------------------------------
     
     % Construct the full paths to the files inside the VF subfolder
-    energyFile = fullfile(path.VF, 'EVW_cached.csv');
-    tieFile = fullfile(path.VF, 'TieVW_cached.csv');
+    energyFile = fullfile(path.VF, ['EVW_cached_', modelName, '.csv']);
+    tieFile    = fullfile(path.VF, ['TieVW_cached_', modelName, '.csv']);
 
     % Check if the cache file exists before attempting to read
     if isfile(energyFile)
@@ -525,7 +527,7 @@ end
 % Cache Simulation Output EVW and TieVW (if simulation just performed)
 %--------------------------------------------------------------------------
 if ~isfile(energyFile)
-    writematrix(EVW_out,   energyFile);          % Cache EVW
+    writematrix(EVW_out,   energyFile);     % Cache EVW
     writematrix(TieVW_out, tieFile);        % Cache TieVW
 end
 %--------------------------------------------------------------------------

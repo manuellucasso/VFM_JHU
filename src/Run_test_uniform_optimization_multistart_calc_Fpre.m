@@ -20,19 +20,19 @@ path.results = fullfile(path.parent, 'results');
 path.VF = fullfile(path.parent, 'VF');
 
 % FIle names
-mymodel = 'Real_data_eye_fiber_choroid_with_pre_cyncl_HGO.feb';      % FE model file
-myexpdata = 'Real_data_eye_fiber_choroid_with_pre_cyncl_HGO.log';    % Experimental data file
-matFile = 'Real_data_eye_fiber_choroid_with_pre_cyncl_HGO.mat'; % Pre-Saved model data
+mymodel = 'NoSharedNodes_Model_comPre.feb';      % FE model file
+myexpdata = 'NoSharedNodes_Model_comPre.log';    % Experimental data file
+matFile = 'NoSharedNodes_Model_comPre.mat'; % Pre-Saved model data
 
-%p_app = [0.15,0.02];                       % Reference and applied pressure
-p_app=[-2.0;0.0];
+p_app = [0.15,0.02];                       % Reference and applied pressure
+%p_app=[-2.0;0.0];
 
 % Last physical time at which prestress is calculated/frozen
 prestress_time = 1.0;
 
 % Last Time of simulation
-%last_time = 1.5;
-last_time = 2;
+last_time = 1.5;
+%last_time = 2;
 
 % Penalty Factor for the contact
 eps = 1000;
@@ -44,10 +44,18 @@ eps = 1000;
 gauss_order = 2;       % Selects 2x2x2 Gauss quadrature for elements
 
 % Bounds for optimization variables [c1, c2]
-lb = [0.6, 0.6,0.6,0.6,0.6];   % lower bounds
-ub = [1.4, 1.4,1.4,1.4,1.4];   % upper bounds
-Normalizer = [50,100,8.62,172.4,308];
-corresponding = [1,2,3,3,4];
+
+%lb = [0.6, 0.6,0.6,0.6,0.6];   % lower bounds
+%ub = [1.4, 1.4,1.4,1.4,1.4];   % upper bounds
+%Normalizer = [50,100,8.62,172.4,308];
+%corresponding = [1,2,3,3,4];
+
+lb = [0.6, 0.6];   % lower bounds
+ub = [1.4, 1.4];   % upper bounds
+Normalizer = [0.1,0.5];
+corresponding = [1,2];
+
+
 count_corresponding = zeros(size(corresponding));
 is_unique = zeros(size(corresponding)); 
 
@@ -60,10 +68,10 @@ changing_matrix = [corresponding; count_corresponding; is_unique];
 
 
 nvars = numel(lb);  % number of variables
-nMaterial = 4;       % Number of  different material models
+nMaterial = 2;       % Number of  different material models
 
 % Dummy initial point (not used in loop, b  ut kept for consistency) 
-x0  = [0.258809967302302,	0.474052627923465,	0.341716430043076,0.11,0.1];
+x0  = [0.258809967302302,	0.47405262792346];
 
 
 %% --- Set fmincon optimization options ---
@@ -102,10 +110,10 @@ start_points = bsxfun(@plus, lb, bsxfun(@times, lhs_points, (ub - lb)));
 randomized_order = randperm(size(start_points, 1));
 start_points = start_points(randomized_order, :);
 
-start_points(1,:) = [1,1,1,1,1]; 
+%start_points(1,:) = [1,1,1,1,1]; 
 
 % Prepend custom start point
-totalRunCount = 2; % Starts at 2 to skip calculation of the virtual field
+totalRunCount = 1; % Starts at 2 to skip calculation of the virtual field
 ForwardCount = 1;
 
 %% --- Prepare arrays to hold results ---

@@ -175,6 +175,14 @@ for step = 1:nSteps
         % Store the prestress Fpre value at subsequent timesteps
         edata_exp.steps{step}.results.eFpre_calc = Fpre_frozen;
     end
+
+    % Passing to edata_exp the information of the current Fpre simualtion    
+    
+    % Copy ecoords to the new ecoords_prestress field
+    edata_exp.steps{step}.results.ecoords_prestress = edata.steps{step}.results.ecoords;
+    
+    % Copy edisp to the new edisp_prestress field
+    edata_exp.steps{step}.results.edisp_prestress = edata.steps{step}.results.edisp;
 end
 
 % --- Clean up temporary files for this run ---
