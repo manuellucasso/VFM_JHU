@@ -72,6 +72,7 @@ gauss_order_hex = gauss_order;           % Gauss order for the hex elements
 % Name of the cache file to store delta_e_struct
 modelName = erase(mymodel, '.feb');      % Remove the extension from .feb 
 cachefile_delta_e = ['delta_e_struct_', modelName, '.mat'];
+fulldelta_e_File = fullfile(path.VF, cachefile_delta_e);
 
 % Deformation gradients for reference configuration
 [F_all, ~] = compute_deformation_gradient(model, ecoords0, edisp, gauss_order_hex);
@@ -161,8 +162,8 @@ for param_ind = 1:nParam
     % Flag to decide whether to compute or just load
     need_to_compute = false;
     
-    if exist(cachefile_delta_e, 'file')
-        S = load(cachefile_delta_e);                % load struct from file
+    if exist(fulldelta_e_File, 'file')
+        S = load(fulldelta_e_File);                % load struct from file
         if isfield(S, 'delta_e_struct') && isfield(S.delta_e_struct, fieldname)
             % field exists: just read from cache
             delta_e = S.delta_e_struct.(fieldname);
@@ -189,7 +190,6 @@ for param_ind = 1:nParam
         delta_e_struct.(fieldname) = delta_e;
     
         % Save/overwrite .mat file (matlab will update or create)
-        fulldelta_e_File = fullfile(path.VF, cachefile_delta_e);
         save(fulldelta_e_File, 'delta_e_struct');
     end
 
