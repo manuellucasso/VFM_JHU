@@ -13,7 +13,8 @@ dataF = zeros(nel,19);
 nummat = size(changing_matrix,2);
 
 % Read file as before
-fid = fopen([mydir '/' mymodel],'r');
+full_unique_model_name = fullfile(mydir, mymodel);
+fid = fopen(full_unique_model_name,'r');
 data = textscan(fid, '%s', 'Delimiter', '\n', 'CollectOutput', true);
 fclose(fid);
 data = data{1}; % flatten cell array
@@ -118,7 +119,10 @@ for matn = 1:nummat
     end
 end
 
-fid = fopen([mydir '/' 'modeltilde.feb'], 'w');
+unique_variation_name = sprintf('modeltilde.feb'); % <-- unique filename
+full_unique_variation_name = fullfile(mydir, unique_variation_name);
+
+fid = fopen(full_unique_variation_name, 'w');
 for I = 1:Nline
     fprintf(fid, '%s\n', char(data{I}));
 end
@@ -128,12 +132,14 @@ fclose(fid);
 %status 0=Success (FEBio ran without errors)
 %status 1=Generic error (e.g., Convergence problem)
 %status -1=Command could not be executed (e.g., path incorrect)
-febio_bin = '/home/msampai4/FEBio/febio_src/build/bin/febio4';
-unique_model_name = 'modeltilde.feb';
-unique_log_name = 'modeltilde.log'; 
-unique_output_name = 'output.txt'; % <-- unique filename
-febio_cmd = sprintf('"%s" -i %s > %s 2>&1', ...
-    febio_bin, unique_model_name, unique_output_name);
+febio_bin = get_febio_path();
+
+unique_output_name = sprintf('output.txt'); % <-- unique filename
+full_unique_output_name = fullfile(mydir, unique_output_name);
+
+
+febio_cmd = sprintf('"%s" -i "%s" > "%s" 2>&1', ...
+    febio_bin, full_unique_variation_name, full_unique_output_name);
 
 [status, cmdout] = system(febio_cmd);
 
@@ -159,7 +165,10 @@ end
 %% Parse FEBio's log file o extract nodal displacement and deformation gradients
 
 % Open file for reading
-fres = fopen('modeltilde.log','r');
+unique_log_name = sprintf('modeltilde.log'); % <-- unique filename
+full_unique_log_name = fullfile(mydir, unique_log_name);
+
+fres = fopen(full_unique_log_name,'r');
 if fres == -1
     error('Could not open log file.');
 end
