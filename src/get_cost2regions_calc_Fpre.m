@@ -54,7 +54,7 @@ function cost = get_cost2regions_calc_Fpre(path, mymodel, model,edata, x, ...
     try
         % Accumulate prestress calculation for given material parameters updated at every set of parameter.
         % Only update Fpre every 10 evaluations of the cost function
-        if mod(ForwardCount, 1) == 1 || ForwardCount==1
+        if ForwardCount==1
             % Always run on the first call, and then every 10th call
             mydir_data = path.data;
             edata = accumulate_Fpre_from_edata(mydir_data, mymodel, gauss_order, prestress_time, matparam, edata,model);
@@ -64,7 +64,7 @@ function cost = get_cost2regions_calc_Fpre(path, mymodel, model,edata, x, ...
             % Uncomment for debug:
             fprintf('[Fpre updated at call %d]\n', totalRunCount);
             fprintf('[Number of Forward count call %d]\n', ForwardCount);
-            ForwardCount = ForwardCount+1;
+            
         else
             % Use the previous Fpre to save on calculation
             edata = edata_with_Fpre_step;
@@ -92,6 +92,7 @@ function cost = get_cost2regions_calc_Fpre(path, mymodel, model,edata, x, ...
 
         % Increment global run counter (tracks number of cost calls/runs).
         totalRunCount = totalRunCount+1;
+        ForwardCount = ForwardCount+1;
 
     catch ME
         % Print error message for debugging if something fails in try block.

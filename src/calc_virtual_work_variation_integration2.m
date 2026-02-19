@@ -24,7 +24,7 @@
 % Integrates over volume and surfaces, computes virtual work, stress and strain at Gauss points.
 %--------------------------------------------------------------------------
 
-global totalRunCount IVW_vector EVW_vector TieVW_vector prestress_time   % Track across parameter sweeps
+global totalRunCount ForwardCount IVW_vector EVW_vector TieVW_vector prestress_time   % Track across parameter sweeps
 
 
 % Kick off parallel pool
@@ -51,6 +51,7 @@ nnd  = length(model.nodes);              % Number of nodes
 times           = edata2.times;
 first_time_step = 1;                     % Use first time step
 last_time_step  = length(times);         % Use last time step (final configuration)
+prestress_step = find(edata2.times <= prestress_time, 1, 'last'); % find last time less than or equal to target
 
 % Extract experimental nodal and element results at first and last time steps
 res0   = edata2.steps{1,first_time_step}.results;
@@ -62,8 +63,16 @@ ecoords = resN.ecoords;                  % Node coords at tn
 edisp   = resN.edisp;                    % Node displacements at tn
 
 resN_1   = edata2.steps{1,last_time_step-1}.results;
-ecoords_1 = resN_1.ecoords;                  % Node coords at tn
-edisp_1   = resN_1.edisp;                    % Node displacements at tn
+ecoords_1 = resN_1.ecoords;              % Node coords at tn-1
+edisp_1   = resN_1.edisp;                % Node displacements at tn-1
+
+resN_pre0   = edata2.steps{1,prestress_step}.results;
+ecoords_pre0 = resN_pre0.ecoords;                  % Node coords at the start of elastic
+edisp_pre0   = resN_pre0.edisp;                   % Node displacements at the start of elastic
+
+resN_pre   = edata2.steps{1,last_time_step}.results;
+ecoords_pre = resN_pre.ecoords_prestress;                  % Node coords at the end of elastic
+edisp_pre   = resN_pre.edisp_prestress;                   % Node displacements the end of elastic
 
 % Starting empty struct
 delta_e_struct = struct(); 
@@ -204,11 +213,14 @@ for param_ind = 1:nParam
     energyFile = fullfile(path.VF, ['EVW_cached_', modelName, '.csv']);
     tieFile    = fullfile(path.VF, ['TieVW_cached_', modelName, '.csv']);
 
-    % Check if the cache file exists before attempting to read
+    % Check if the cache file for the EVW exists before attempting to read
     if isfile(energyFile)
-        EVW_out = readmatrix(energyFile);
-        TieVW_out = readmatrix(tieFile);
-        fprintf('Energy cache loaded successfully from VF folder.\n');
+        EVW_out = readmatrix(energyFile);  
+    end
+
+    % Check if the cache file for the TieEVW exists before attempting to read
+    if isfile(tieFile) && ForwardCount ~= 1
+         TieVW_out = readmatrix(tieFile);
     end
 
     %% ----------------- Internal Virtual Work Calculation -----------------
@@ -306,12 +318,13 @@ for param_ind = 1:nParam
     % Getting the total value after parfor
     IVW        = sum(element_IVW_array);
 
-    %% --- Import Cached Results for EVW and TieVW ---
-    if isfile(energyFile)
+    %% ----------------- External Virtual Work Calculation (Surface) -----------------
+    if isfile(energyFile) 
+        
         EVW = EVW_out(param_ind);
-        TieVW = TieVW_out(param_ind);
+
     else    
-        %% ----------------- External Virtual Work Calculation (Surface) -----------------
+        
         EVW = 0;                                   % External Virtual Work accumulator
         AreaS = 0;                                 % Surface area accumulator
     
@@ -376,9 +389,14 @@ for param_ind = 1:nParam
             end   
         end
         EVW_out(param_ind) = EVW;
-    
+    end
     %% ----------------- External Virtual Work Calculation (Tie-Contact) -----------------
-    
+    if isfile(tieFile) && ForwardCount ~= 1
+        
+        TieVW = TieVW_out(param_ind);
+
+    else 
+        
         TieVW = 0;                 % Virtual work accumulator
         TieArea = 0;               % Contact area accumulator
         test=1;
@@ -392,7 +410,6 @@ for param_ind = 1:nParam
             nfaces = size(model.tie_contact.primary_nodes, 1);
             
             for iface = 1:nfaces
-                %ip_map = edata2.all_ip_map{2,1}{iface,1}; % getting the info at the last time step
                 ip_map0 = edata2.all_ip_map{1,1}{iface,1}; % getting the info at the first time step
                 primary_face_nodes = model.tie_contact.primary_nodes(iface,:);
         
@@ -404,7 +421,8 @@ for param_ind = 1:nParam
                 delu_nodes_prim = zeros(4,3);
                 for k = 1:4
                     idx = find(model.nodes(:,1)==primary_face_nodes(k+1));
-                    X_face_current(k,:) = ecoords(idx,1:3);
+                    %X_face_current(k,:) = ecoords(idx,1:3);
+                    X_face_current(k,:) = ecoords_pre(idx,1:3);
                     X_face_1(k,:) = ecoords_1(idx,1:3);
                     X_face_ref(k,:)     = ecoords0(idx,1:3);
                     delu_nodes_prim(k,:) = delu(primary_face_nodes(k+1),:);
@@ -439,7 +457,8 @@ for param_ind = 1:nParam
                         idx2 = find(model.nodes(:,1)==sec_elem_nodes(k2));
                         delu_nodes_sec(k2,:) = delu(sec_elem_nodes(k2),:);
                         X_sec_1(k2,:) = ecoords_1(idx2,1:3);
-                        X_sec_current(k2,:) = ecoords(idx2,1:3);
+                        %X_sec_current(k2,:) = ecoords(idx2,1:3);
+                        X_sec_current(k2,:) = ecoords_pre(idx2,1:3);
                         X_sec_ref(k2,:) = ecoords0(idx2,1:3);
                     end
             
@@ -528,8 +547,13 @@ end
 %--------------------------------------------------------------------------
 if ~isfile(energyFile)
     writematrix(EVW_out,   energyFile);     % Cache EVW
+end
+
+if ~isfile(tieFile) || ForwardCount == 1
     writematrix(TieVW_out, tieFile);        % Cache TieVW
 end
+
+
 %--------------------------------------------------------------------------
 % End of Function
 %--------------------------------------------------------------------------
