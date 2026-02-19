@@ -110,7 +110,7 @@ start_points = bsxfun(@plus, lb, bsxfun(@times, lhs_points, (ub - lb)));
 randomized_order = randperm(size(start_points, 1));
 start_points = start_points(randomized_order, :);
 
-%start_points(1,:) = [1,1]; 
+start_points(1,:) = [1,1]; 
 
 % Prepend custom start point
 totalRunCount = 2; % Starts at 2 to skip calculation of the virtual field
@@ -139,7 +139,7 @@ if isfile(fullMatPath)
     edata = loaded.edata;
     disp('Loaded model and edata from saved .mat file.');
 else
-    [model, edata] = preliminary_reading(path.data, mymodel, myexpdata,edata,model);
+    [model, edata] = preliminary_reading(path.data, mymodel, myexpdata,edata,model,prestress_time);
     save(fullMatPath, 'model', 'edata');
     disp('Read experiment dataparsed and saved results.');
 end;

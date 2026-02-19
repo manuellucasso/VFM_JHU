@@ -112,7 +112,7 @@ t_pre_read = tic;
 
 % Parsing data from the unique output files just generated
 
-[model, edata] = preliminary_reading(mydir, mymodel, myexpdata, edata_exp, model);
+[model, edata] = preliminary_reading(mydir, mymodel, myexpdata, edata_exp, model,prestress_time);
 
 elapsed = toc(t_pre_read);
 

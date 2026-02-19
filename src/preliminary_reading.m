@@ -1,4 +1,4 @@
-function [model, edata] = preliminary_reading(mydir, mymodel, myexpdata,edata,model)
+function [model, edata] = preliminary_reading(mydir, mymodel, myexpdata,edata,model,prestress_time)
 % Reads a FEBio model and corresponding experimental (or simulation) data.
 % Returns:
 %   model - finite element model struct (geometry, connectivity, etc.)
@@ -71,11 +71,11 @@ fclose(fid);
 edata.steps = steps;
 edata.times = times;
 
-
+% steps to calculate gap
 num_steps = [1];
 
 
-% Só inicializa se ainda não existe
+% Init only if it doesn't exist
 if ~isfield(edata, 'all_ip_map')
     edata.all_ip_map = cell(2, 1);
 end
