@@ -54,6 +54,7 @@ lb = [0.6, 0.6];   % lower bounds
 ub = [1.4, 1.4];   % upper bounds
 Normalizer = [0.1,0.5];
 corresponding = [1,2];
+parameter = {'c1','c1'};
 
 
 count_corresponding = zeros(size(corresponding));
@@ -64,7 +65,8 @@ for i = 1:length(corresponding)
     is_unique(i) = sum(corresponding == corresponding(i)) == 1;
 end
 
-changing_matrix = [corresponding; count_corresponding; is_unique];
+changing_matrix = [num2cell(corresponding); num2cell(count_corresponding);...
+    num2cell(is_unique);parameter];
 
 
 nvars = numel(lb);  % number of variables
@@ -110,7 +112,7 @@ start_points = bsxfun(@plus, lb, bsxfun(@times, lhs_points, (ub - lb)));
 randomized_order = randperm(size(start_points, 1));
 start_points = start_points(randomized_order, :);
 
-start_points(1,:) = [1,1]; 
+%start_points(1,:) = [1,1]; 
 
 % Prepend custom start point
 totalRunCount = 2; % Starts at 2 to skip calculation of the virtual field

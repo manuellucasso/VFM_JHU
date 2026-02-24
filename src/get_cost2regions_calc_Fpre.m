@@ -2,52 +2,11 @@ function cost = get_cost2regions_calc_Fpre(path, mymodel, model,edata, x, ...
     p_app,gauss_order,prestress_time,eps,changing_matrix,Normalizer)
     
     global totalRunCount edata_with_Fpre_step ForwardCount
-    
-
-    corresponding = changing_matrix(1,:);
-    parameters = x .* Normalizer;
-    ground_truth_mat = model.matprop;
-    matparam_sweep = zeros([length(corresponding),size(ground_truth_mat,2)]);
-
-    %Creating material parameters vector to pass on to the next functions
-    % Assign material properties for this run
-    for k = 1:max(corresponding)  
-
-        if ismember(k,corresponding)
-            idx_int = find(corresponding == k, 1, 'first');
-            idx_last = find(corresponding == k, 1, 'last');
-            nParam = idx_last - idx_int + 1;
-            
-            if idx_int-idx_last == 0
-                % The retina is not incompressible
-                if k == 3
-                    matparam(k,1) = parameters(idx_int);
-                    matparam(k,2) = parameters(idx_int) * 20;
-                else
-                
-                    matparam(k,1) = parameters(idx_int);
-                    matparam(k,2) = parameters(idx_int) * 1000;
-                end
-
-            else
-                for iParam = 1:nParam
-                    matparam(k,iParam) = parameters(idx_int+iParam-1);
-                end
-
-            end
-        end
-
-    end
+     
 
 
     %Creating material parameters vector to sweep on the PVW calculation
-    for ind_mat =1:size(changing_matrix,2)
-        col_param = changing_matrix(2,ind_mat);
-        if col_param == 2; col_param_prop = 3;else, col_param_prop=col_param; end  
-        row_param = changing_matrix(1,ind_mat);
-        matparam_sweep(ind_mat,:) = ground_truth_mat(row_param,:);
-        matparam_sweep(ind_mat,col_param_prop) = matparam(row_param,col_param); 
-    end
+    [matparam,matparam_sweep] = SweepMatrix(model,changing_matrix,x,Normalizer);
 
     
     % Try-catch block: handle potential failures in FEBio or cost calculation routines.
