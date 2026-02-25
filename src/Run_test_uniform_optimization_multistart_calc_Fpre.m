@@ -38,7 +38,7 @@ last_time = 1.5;
 eps = 1000;
 
 % Number of  different material models
-nMaterial = 2;      
+nMaterial = 11;      
 
 %--------------------------------------------------------------------------
 % Gauss Order for Numerical Integration
@@ -74,21 +74,17 @@ changing_matrix = [num2cell(corresponding); num2cell(count_corresponding);...
 nvars = numel(lb);  % number of variables
 
 %% --- Operations for copying and combining parameters in the parameter matrix ---
-target_rows = [5 6 7 5 6 7 5 6 7 5 6 7 8];
-target_cols = [1 1 1 2 2 2 3 3 3 4 4 4 1];
+target_rows = {[5], [6], [7], [8]};
 
+source_rows = {4, 4, 4, 4};
+  
+% each matches source_rows index 
+source_cols = { [1 2 3 4], [1 2 3 4] ,[1 2 3 4], [1 2]}; 
 
-source_rows = {4, 4, 4,...    % 5,6,7 col 1 from row 4 col 1
-    4, 4, 4,...    % 5,6,7 col 2 from row 4 col 2
-    4, 4, 4,...    % 5,6,7 col 3 from row 4 col 3
-    4, 4, 4,...    % 5,6,7 col 4 from row 4 col 4
-    4 4};             % 8, col 1 from row 4 col 1 and row 4 col 2 (combination)
-
-% each matches source_rows index (same as target_col from row 4)
-source_cols = { 1, 1, 1,2, 2, 2, 3, 3, 3, 4, 4, 4, 1 2}; 
+target_cols = {[1 2 3 4], [1 2 3 4] ,[1 2 3 4], [1 1]};
 
 % direct copies for 1:4
-weights = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,[1 0.0031]};   
+weights = {[1 1 1 1], [1 1 1 1] ,[1 1 1 1],[1 0.0031]};   
 
 % Generating the ops struct
 mat_size=[nMaterial,7];
