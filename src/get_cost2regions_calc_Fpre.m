@@ -1,12 +1,12 @@
 function cost = get_cost2regions_calc_Fpre(path, mymodel, model,edata, x, ...
-    p_app,gauss_order,prestress_time,eps,changing_matrix,Normalizer)
+    p_app,gauss_order,prestress_time,eps,changing_matrix,Normalizer,Aeq)
     
     global totalRunCount edata_with_Fpre_step ForwardCount
      
 
 
     %Creating material parameters vector to sweep on the PVW calculation
-    [matparam,matparam_sweep] = SweepMatrix(model,changing_matrix,x,Normalizer);
+    [matparam,matparam_sweep,matparam_complete] = SweepMatrix(model,changing_matrix,x,Normalizer,Aeq);
 
     
     % Try-catch block: handle potential failures in FEBio or cost calculation routines.

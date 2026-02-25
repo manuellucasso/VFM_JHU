@@ -1,10 +1,11 @@
-function [matparam,matparam_sweep] = SweepMatrix(model,changing_matrix,x,Normalizer)
+function [matparam,matparam_sweep,matparam_complete] = SweepMatrix(model,changing_matrix,x,Normalizer,Aeq)
     % Compute Cauchy stress for material in 'model' at index 'mat_idx'
     % F: 3x3 deformation gradient
     % model: struct from your parser (see above)
     % mat_idx: index of material to use
            
     ground_truth_mat = model.matprop;
+    matparam_complete = ground_truth_mat;
     corresponding = cell2mat(changing_matrix(1,:));
     parameters = x .* Normalizer;
     matparam_sweep = zeros([length(corresponding),size(ground_truth_mat,2)]);
@@ -40,6 +41,7 @@ function [matparam,matparam_sweep] = SweepMatrix(model,changing_matrix,x,Normali
 
     end
 
+    already_changed = 0;
     for col = 1:size(changing_matrix, 2)
         % Determine material model string
         mat_idx = changing_matrix{1,col};
@@ -98,13 +100,25 @@ function [matparam,matparam_sweep] = SweepMatrix(model,changing_matrix,x,Normali
         end
 
     
-    % Changing the value in the material parameter sweep matrix
+        % Changing the value in the material parameter sweep matrix
         col_param_prop = prop;
         row_param = changing_matrix{1,col}; 
         col_param = changing_matrix{2,col};  
         matparam_sweep(col,:) = ground_truth_mat(row_param,:);
         matparam_sweep(col,col_param_prop) = matparam(row_param,col_param);
+
+
+        % Changing the value in the material parameter matparam_complete
+        matparam_complete(mat_idx,col_param_prop) = matparam(row_param,col_param);
+
+        % Fixing K to be with a fixed proportion to the c1 for the parameters to find
+        if col_param_prop ~= 3 && already_changed ~= mat_idx
+            matparam_complete(mat_idx,3) = matparam(row_param,2);
+            already_changed = mat_idx;
+        end
     
     end
+
+matparam_complete = matparam_complete * Aeq;
 
 end

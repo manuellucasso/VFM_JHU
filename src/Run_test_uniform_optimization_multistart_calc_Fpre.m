@@ -37,6 +37,9 @@ last_time = 1.5;
 % Penalty Factor for the contact
 eps = 1000;
 
+% Number of  different material models
+nMaterial = 2;      
+
 %--------------------------------------------------------------------------
 % Gauss Order for Numerical Integration
 %--------------------------------------------------------------------------
@@ -56,7 +59,6 @@ Normalizer = [0.1,0.5];
 corresponding = [1,2];
 parameter = {'c1','c1'};
 
-
 count_corresponding = zeros(size(corresponding));
 is_unique = zeros(size(corresponding)); 
 
@@ -70,11 +72,26 @@ changing_matrix = [num2cell(corresponding); num2cell(count_corresponding);...
 
 
 nvars = numel(lb);  % number of variables
-nMaterial = 2;       % Number of  different material models
 
-% Dummy initial point (not used in loop, b  ut kept for consistency) 
-x0  = [0.258809967302302,	0.47405262792346];
+%% --- Operations for copying and combining parameters in the parameter matrix ---
+target_rows = [5 6 7 5 6 7 5 6 7 5 6 7 8];
+target_cols = [1 1 1 2 2 2 3 3 3 4 4 4 1];
 
+
+source_rows = {4, 4, 4,...    % 5,6,7 col 1 from row 4 col 1
+    4, 4, 4,...    % 5,6,7 col 2 from row 4 col 2
+    4, 4, 4,...    % 5,6,7 col 3 from row 4 col 3
+    4, 4, 4,...    % 5,6,7 col 4 from row 4 col 4
+    4 4};             % 8, col 1 from row 4 col 1 and row 4 col 2 (combination)
+
+% each matches source_rows index (same as target_col from row 4)
+source_cols = { 1, 1, 1,2, 2, 2, 3, 3, 3, 4, 4, 4, 1 2}; 
+
+% direct copies for 1:4
+weights = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,[1 0.0031]};   
+
+% Generating the ops struct
+ops = create_ops(target_rows, target_cols, source_rows, source_cols, weights);
 
 %% --- Set fmincon optimization options ---
 options = optimoptions('fmincon', ...
@@ -103,7 +120,7 @@ end
 
 
 N = 7; % number of random additional points
-lhs_points = lhsdesign(N, length(x0));  % generates points in [0,1]
+lhs_points = lhsdesign(N, length(Normalizer));  % generates points in [0,1]
 
 % Scale lhs_points to actual bounds
 start_points = bsxfun(@plus, lb, bsxfun(@times, lhs_points, (ub - lb)));
@@ -149,7 +166,7 @@ end;
 %% --- Define the cost function (anonymous wrapper) ---
 cost_function = @(x) get_cost2regions_calc_Fpre(...
     path, mymodel, model, edata, x, p_app, gauss_order, prestress_time,eps,...
-    changing_matrix,Normalizer);
+    changing_matrix,Normalizer,Aeq);
 
 %% --- Perform optimization separately at each starting point ---
 start_points(1,:)
