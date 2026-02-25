@@ -1,4 +1,4 @@
-function [matparam,matparam_sweep,matparam_complete] = SweepMatrix(model,changing_matrix,x,Normalizer,Aeq)
+function [ground_truth_mat,matparam_sweep,matparam_complete] = SweepMatrix(model,changing_matrix,x,Normalizer,ops_matrix_struct)
     % Compute Cauchy stress for material in 'model' at index 'mat_idx'
     % F: 3x3 deformation gradient
     % model: struct from your parser (see above)
@@ -41,65 +41,15 @@ function [matparam,matparam_sweep,matparam_complete] = SweepMatrix(model,changin
 
     end
 
-    already_changed = 0;
     for col = 1:size(changing_matrix, 2)
         % Determine material model string
         mat_idx = changing_matrix{1,col};
         mat_type = lower(strtrim(model.matmodel(mat_idx)));
         mat_change = changing_matrix{4,col};
         
-        switch mat_type
-            case "neo-hookean"
-                switch lower(mat_change)
-                    case 'mu'
-                        prop=1;
-                    case 'k'
-                        prop=2;
-                end
-            case "mooney-rivlin"
-                switch lower(mat_change)
-                    case 'c1'
-                        prop=1;
-                    case 'c2'
-                        prop=2;
-                    case 'k'
-                        prop=3;
-                end
-            case "ti-mooney-rivlin"
-                switch lower(mat_change)
-                    case 'c1'
-                        prop=1;
-                    case 'c2'
-                        prop=2;
-                    case 'k'
-                        prop=3;
-                    case 'c3'
-                        prop=4;
-                    case 'c4'
-                        prop=5;
-                    case 'c5'
-                        prop=6;
-                    case 'flam'
-                        prop=7;
-                end
-            case 'hgo-unconstrained'
-                switch lower(mat_change)
-                    case 'c'
-                        prop=1;
-                    case 'k1'
-                        prop=2;
-                    case 'k2'
-                        prop=4;
-                    case 'k'
-                        prop=3;
-                    case 'kappa'
-                        prop=5;
-                    case 'gamma'
-                        prop=6;
-                end
-        end
+        % Getting the order of the property for a given material type
+        prop = mat_change2prop(mat_type, mat_change);
 
-    
         % Changing the value in the material parameter sweep matrix
         col_param_prop = prop;
         row_param = changing_matrix{1,col}; 
@@ -110,15 +60,60 @@ function [matparam,matparam_sweep,matparam_complete] = SweepMatrix(model,changin
 
         % Changing the value in the material parameter matparam_complete
         matparam_complete(mat_idx,col_param_prop) = matparam(row_param,col_param);
-
-        % Fixing K to be with a fixed proportion to the c1 for the parameters to find
-        if col_param_prop ~= 3 && already_changed ~= mat_idx
-            matparam_complete(mat_idx,3) = matparam(row_param,2);
-            already_changed = mat_idx;
-        end
-    
+   
     end
 
-matparam_complete = matparam_complete * Aeq;
+   
+    % Performing operations between parameters
+    totalNparam =length(matparam_complete(1,:));
+    %Changing the K column from the matparam_complete
+    totalNmat = length(matparam_complete(:,1));
+
+    for idx_Mat = 1:totalNmat
+        tgt_row = ops_matrix_struct(idx_Mat).tgt_row;
+        src_row = ops_matrix_struct(idx_Mat).src_row;
+        A_matrix = ops_matrix_struct(idx_Mat).A;
+        B_matrix = ops_matrix_struct(idx_Mat).B;
+
+        src_mult = zeros(1,totalNparam);
+
+        if isempty(A_matrix)
+            continue
+        end
+
+        for n_src = 1:length(src_row)
+        
+           src_mult = src_mult + matparam_complete(src_row(n_src),:)* A_matrix{n_src}; 
+        
+        end
+
+        matparam_complete(tgt_row,:) = (src_mult + matparam_complete(tgt_row,:) * B_matrix)';
+    end
+
+    
+    % Fix the incompressibility 1000c1 for the materials without a
+    % prescribed K
+
+    % Reading changing materials
+    param_names = changing_matrix(4,:);      % Get the parameter names from the 4th row
+    materials_number = changing_matrix(1,:);     % Get the values from the 1st row
+    
+    % Find columns that have 'k' or 'K' (case-insensitive, only exact 'k')
+    idx_k = cellfun(@(x) ~isempty(regexpi(x, '^k$', 'once')), param_names);
+    
+    % Get the corresponding values from the materials numbers
+    materials2exclude = cell2mat(materials_number(idx_k));
+
+    % Looping over the elements
+    for i = 1:totalNmat
+
+        value2check = i;
+
+        if ismember(value2check, materials2exclude)
+            continue
+        else
+            matparam_complete(i,3) = matparam_complete(i,1)*1000; %1000 times incompressibility
+        end
+    end
 
 end

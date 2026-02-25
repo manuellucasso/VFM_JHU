@@ -1,12 +1,12 @@
 function cost = get_cost2regions_calc_Fpre(path, mymodel, model,edata, x, ...
-    p_app,gauss_order,prestress_time,eps,changing_matrix,Normalizer,Aeq)
+    p_app,gauss_order,prestress_time,eps,changing_matrix,Normalizer,ops_matrix_struct)
     
     global totalRunCount edata_with_Fpre_step ForwardCount
      
 
 
     %Creating material parameters vector to sweep on the PVW calculation
-    [matparam,matparam_sweep,matparam_complete] = SweepMatrix(model,changing_matrix,x,Normalizer,Aeq);
+    [ground_truth_mat,matparam_sweep,matparam_complete] = SweepMatrix(model,changing_matrix,x,Normalizer,ops_matrix_struct);
 
     
     % Try-catch block: handle potential failures in FEBio or cost calculation routines.
@@ -16,7 +16,7 @@ function cost = get_cost2regions_calc_Fpre(path, mymodel, model,edata, x, ...
         if ForwardCount==1
             % Always run on the first call, and then every 10th call
             mydir_data = path.data;
-            edata = accumulate_Fpre_from_edata(mydir_data, mymodel, gauss_order, prestress_time, matparam, edata,model);
+            edata = accumulate_Fpre_from_edata(mydir_data, mymodel, gauss_order, prestress_time, matparam_complete, edata,model);
             edata_with_Fpre_step = edata; % Save the new edata
             
             
@@ -34,7 +34,7 @@ function cost = get_cost2regions_calc_Fpre(path, mymodel, model,edata, x, ...
 
         % Compute the cost function using virtual work integrals.
                            [~, ~, ~, cost_func] = calc_virtual_work_variation_integration2(path, mymodel, model, ...
-            edata, matparam, matparam_sweep ,p_app, gauss_order,eps,changing_matrix);
+            edata, matparam_complete, matparam_sweep ,ground_truth_mat,p_app, gauss_order,eps,changing_matrix);
 
         % Check result validity: cost must be finite and non-NaN.
         if isnan(cost_func) || ~isfinite(cost_func)

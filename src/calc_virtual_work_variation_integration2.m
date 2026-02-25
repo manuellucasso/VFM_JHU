@@ -1,5 +1,5 @@
  function [IVW, EVW, TieVW, cost_func] = calc_virtual_work_variation_integration2(path, mymodel, model, ...
-    edata2, matparam, matparam_sweep, p_app, gauss_order,eps,changing_matrix)
+    edata2, matparam, matparam_sweep,ground_truth_mat, p_app, gauss_order,eps,changing_matrix)
 %--------------------------------------------------------------------------
 % calc_virtual_work_variation_integration2
 %--------------------------------------------------------------------------
@@ -36,7 +36,7 @@ if isempty(gcp('nocreate'))
         N = feature('numcores'); % fallback se rodar local
     end
     
-    parpool('local', N);
+    parpool('local', 4);
 end
 
 
@@ -131,7 +131,7 @@ for param_ind = 1:nParam
         % Run FEA simulation and store results for this parameter set
         mydir = path.data;
         tic
-        [nodedat, elemdat] = simulate_febio_uniform(mydir, mymodel, matparam_sweep, nnd, nel, param_ind,changing_matrix);
+        [nodedat, elemdat] = simulate_febio_uniform(mydir, mymodel, matparam_sweep,ground_truth_mat ,nnd, nel, param_ind,changing_matrix);
         time3 = toc;
         fprintf('simulate_febio_uniform took %.4f s\n', time3);
 

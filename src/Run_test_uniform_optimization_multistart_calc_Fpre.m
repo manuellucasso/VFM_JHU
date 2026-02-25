@@ -20,19 +20,20 @@ path.results = fullfile(path.parent, 'results');
 path.VF = fullfile(path.parent, 'VF');
 
 % FIle names
-mymodel = 'NoSharedNodes_Model_comPre.feb';      % FE model file
-myexpdata = 'NoSharedNodes_Model_comPre.log';    % Experimental data file
-matFile = 'NoSharedNodes_Model_comPre.mat'; % Pre-Saved model data
+mymodel = 'Real_data_eye_fiber_choroid_with_pre_cyncl_HGO_4regions.feb';      % FE model file
+myexpdata = 'Real_data_eye_fiber_choroid_with_pre_cyncl_HGO_4regions.log';    % Experimental data file
+matFile = 'Real_data_eye_fiber_choroid_with_pre_cyncl_HGO_4regions.mat'; % Pre-Saved model data
 
-p_app = [0.15,0.02];                       % Reference and applied pressure
-%p_app=[-2.0;0.0];
+%p_app = [0.15,0.02];                       % Reference and applied pressure
+p_app=[-2.0;0.0];
 
 % Last physical time at which prestress is calculated/frozen
-prestress_time = 1.0;
+%prestress_time = 1.0;
+prestress_time = 0.0;
 
 % Last Time of simulation
-last_time = 1.5;
-%last_time = 2;
+%last_time = 1.5;
+last_time = 2;
 
 % Penalty Factor for the contact
 eps = 1000;
@@ -48,16 +49,17 @@ gauss_order = 2;       % Selects 2x2x2 Gauss quadrature for elements
 
 % Bounds for optimization variables [c1, c2]
 
-%lb = [0.6, 0.6,0.6,0.6,0.6];   % lower bounds
-%ub = [1.4, 1.4,1.4,1.4,1.4];   % upper bounds
-%Normalizer = [50,100,8.62,172.4,308];
-%corresponding = [1,2,3,3,4];
+lb = [0.6, 0.6,0.6, 0.6,0.6, 0.6,0.6, 0.6];   % lower bounds
+ub = [1.4, 1.4,1.4, 1.4,1.4, 1.4,1.4, 1.4];   % upper bounds
+Normalizer = [50,100,3266,8.62,172.4,308,5638,11.4];
+corresponding = [1,2,2,3,3,4,4,4];
+parameter = {'c1','c1','k','c1','k','c','k1','k2'};
 
-lb = [0.6, 0.6];   % lower bounds
-ub = [1.4, 1.4];   % upper bounds
-Normalizer = [0.1,0.5];
-corresponding = [1,2];
-parameter = {'c1','c1'};
+%lb = [0.6, 0.6];   % lower bounds
+%ub = [1.4, 1.4];   % upper bounds
+%Normalizer = [0.1,0.5];
+%corresponding = [1,2];
+%parameter = {'c1','c1'};
 
 count_corresponding = zeros(size(corresponding));
 is_unique = zeros(size(corresponding)); 
@@ -88,7 +90,7 @@ weights = {[1 1 1 1], [1 1 1 1] ,[1 1 1 1],[1 0.0031]};
 
 % Generating the ops struct
 mat_size=[nMaterial,7];
-[ops,A,B] = create_ops(target_rows, target_cols, source_rows, source_cols, weights,mat_size);
+ops_matrix_struct = create_ops(target_rows, target_cols, source_rows, source_cols, weights,mat_size);
 
 %% --- Set fmincon optimization options ---
 options = optimoptions('fmincon', ...
@@ -130,7 +132,7 @@ start_points = start_points(randomized_order, :);
 
 % Prepend custom start point
 totalRunCount = 2; % Starts at 2 to skip calculation of the virtual field
-ForwardCount = 1;
+ForwardCount = 2;
 
 %% --- Prepare arrays to hold results ---
 n_start = size(start_points, 1);       % number of start points
@@ -163,7 +165,7 @@ end;
 %% --- Define the cost function (anonymous wrapper) ---
 cost_function = @(x) get_cost2regions_calc_Fpre(...
     path, mymodel, model, edata, x, p_app, gauss_order, prestress_time,eps,...
-    changing_matrix,Normalizer,Aeq);
+    changing_matrix,Normalizer,ops_matrix_struct);
 
 %% --- Perform optimization separately at each starting point ---
 start_points(1,:)

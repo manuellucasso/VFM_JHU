@@ -1,4 +1,4 @@
-function [datau,dataF]=simulate_febio_uniform(mydir,mymodel,matparam,nnd,nel,param_ind,changing_matrix)
+function [datau,dataF]=simulate_febio_uniform(mydir,mymodel,matparam_sweep,ground_truth_mat,nnd,nel,param_ind,changing_matrix)
 global last_time
  
 %dimension storage for simulation results
@@ -20,104 +20,11 @@ fclose(fid);
 data = data{1}; % flatten cell array
 Nline = numel(data);
 
+matparam_line = matparam_sweep(param_ind,:);
+matparam = ground_truth_mat;
+matparam(param_ind,:) = matparam_line;
 
-
-for matn = 1:nummat
-    mat_id = changing_matrix(1,param_ind);
-    material_start_line = 0;
-    material_end_line = 0;
-    % Removed is_unique and count_here, no longer needed
-
-    % --- Identify block ---
-    for i = 1:Nline
-        if contains(data{i}, sprintf('material id="%d"', mat_id))
-            material_start_line = i;
-        end
-        if material_start_line > 0 && contains(data{i}, '</material>')
-            material_end_line = i;
-            break;
-        end
-    end
-
-% --- If block found ---
-    if material_start_line > 0 && material_end_line > 0
-        % --- Find material type for this block ---
-        blocktype = '';
-        for searchline = material_start_line:material_end_line
-            if contains(data{searchline}, 'neo-Hookean')
-                blocktype = 'neo-Hookean';
-                break;
-            elseif contains(data{searchline}, 'type="coupled Mooney-Rivlin')
-                blocktype = 'Mooney-Rivlin';
-                break;
-            elseif contains(data{searchline}, 'type="coupled trans-iso Mooney-Rivlin">')
-                blocktype = 'coupled trans-iso Mooney-Rivlin';
-                break;
-            elseif contains(data{searchline}, 'type="HGO unconstrained"')
-                blocktype = 'HGO unconstrained';
-                break;
-            end
-            % Add more elseif for other types if needed
-        end
-
-        for j = material_start_line:material_end_line
-            switch blocktype
-                case 'neo-Hookean'
-                    % --- Neo-Hookean: change both <E> and <v> ---
-                    if contains(data{j}, '<E>')
-                        data{j} = sprintf('<E>%.8g</E>', matparam(param_ind, 1)); % E
-                    end
-                    if contains(data{j}, '<v>')
-                        data{j} = sprintf('<v>%.8g</v>', matparam(param_ind, 3)); % v
-                    end
-
-                case 'Mooney-Rivlin'
-                    % --- Mooney-Rivlin: change <c1>, <k> ---
-                    if contains(data{j}, '<c1>')
-                        data{j} = sprintf('<c1>%.8g</c1>', matparam(param_ind, 1));
-                    end
-                    if contains(data{j}, '<k>')
-                        data{j} = sprintf('<k>%.8g</k>', matparam(param_ind, 3));
-                    end
-
-                case 'coupled trans-iso Mooney-Rivlin'
-                    % --- Change all parameters for trans-iso Mooney-Rivlin ---
-                    if contains(data{j}, '<c1>')
-                        data{j} = sprintf('<c1>%.8g</c1>', matparam(param_ind, 1));
-                    elseif contains(data{j}, '<c2>')
-                        data{j} = sprintf('<c2>%.8g</c2>', matparam(param_ind, 2));
-                    elseif contains(data{j}, '<k>')
-                        data{j} = sprintf('<k>%.8g</k>', matparam(param_ind, 3));
-                    elseif contains(data{j}, '<c3>')
-                        data{j} = sprintf('<c3>%.8g</c3>', matparam(param_ind, 4));
-                    elseif contains(data{j}, '<c4>')
-                        data{j} = sprintf('<c4>%.8g</c4>', matparam(param_ind, 5));
-                    elseif contains(data{j}, '<c5>')
-                        data{j} = sprintf('<c5>%.8g</c5>', matparam(param_ind, 6));
-                    elseif contains(data{j}, '<lam_max>')
-                        data{j} = sprintf('<lam_max>%.8g</lam_max>', matparam(param_ind, 7));
-                    end
-
-                case 'HGO unconstrained'
-                    % --- HGO unconstrained: update <c>, <k1>, <k>, <k2>, <kappa>, <gamma> ---
-                    if contains(data{j}, '<c>')
-                        data{j} = sprintf('<c>%.8g</c>', matparam(param_ind, 1));       % c
-                    elseif contains(data{j}, '<k1>')
-                        data{j} = sprintf('<k1>%.8g</k1>', matparam(param_ind, 2));     % k1
-                    elseif contains(data{j}, '<k>')
-                        data{j} = sprintf('<k>%.8g</k>', matparam(param_ind, 3));       % k
-                    elseif contains(data{j}, '<k2>')
-                        data{j} = sprintf('<k2>%.8g</k2>', matparam(param_ind, 4));     % k2
-                    elseif contains(data{j}, '<kappa>')
-                        data{j} = sprintf('<kappa>%.8g</kappa>', matparam(param_ind, 5)); % kappa
-                    elseif contains(data{j}, '<gamma>')
-                        data{j} = sprintf('<gamma>%.8g</gamma>', matparam(param_ind, 6)); % gamma
-                    end
-                % Add more cases here for other material types as needed
-            end
-        end
-    end
-end
+data = update_material_block_lines(data, matparam, model);
 
 unique_variation_name = sprintf('modeltilde.feb'); % <-- unique filename
 full_unique_variation_name = fullfile(mydir, unique_variation_name);

@@ -100,10 +100,10 @@ function ops_matrix_struct = build_AB(mat_size, ops)
                 tgt_column_spc = tgt_col{1}(c);
                 src_column_spc  = src_col(c);
     
-                ops_matrix_struct(tgt{1}).A{i}(tgt_column_spc, src_column_spc) = 1*weights(src_column_spc);
+                ops_matrix_struct(tgt{1}).A{i}(src_column_spc,tgt_column_spc) = 1*weights(src_column_spc);
                 
                 % Set B so the original value at that [tgt,c] is ignored
-                ops_matrix_struct(tgt{1}).B(tgt_column_spc, src_column_spc) = 0;
+                ops_matrix_struct(tgt{1}).B(src_column_spc,tgt_column_spc) = 0;
             end
         end
     end

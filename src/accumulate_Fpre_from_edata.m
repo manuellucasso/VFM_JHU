@@ -1,4 +1,4 @@
-function edata_exp = accumulate_Fpre_from_edata(mydir, mymodel, gauss_order, prestress_time, matparam, edata_exp, model)
+function edata_exp = accumulate_Fpre_from_edata(mydir, mymodel, gauss_order, prestress_time, matparam_complete, edata_exp, model)
 % Accumulate cumulative deformation gradient (Fpre) and store in edata.steps{step}.results.eFpre_calc.
 %
 % Between t=0 and the user-provided prestress_time, Fpre is accumulated (product of F).
@@ -26,46 +26,8 @@ data = textscan(fid, '%s', 'Delimiter', '\n', 'CollectOutput', true);
 fclose(fid);
 
 lines = data{1};
-nummat = size(matparam, 1);
 
-for matn = 1:nummat
-    % Find the line where the material block for this material id starts
-    for i = 1:length(lines)
-        if contains(lines{i}, '<material id="') && ...
-           contains(lines{i}, ['id="' num2str(matn) '"'])
-            % In this block, search forward for relevant <elastic type=...>
-            for j = i+1:length(lines)
-                if contains(lines{j}, '<elastic type="coupled Mooney-Rivlin">') || ...
-                   contains(lines{j}, '<elastic type="coupled trans-iso Mooney-Rivlin">')
-                    % Modify <c1> and <k>
-                    for k = j+1:j+10  % Look ahead maximum 10 lines
-                        if contains(lines{k}, '<c1>')
-                            lines{k} = sprintf('<c1>%g</c1>', matparam(matn,1));
-                        elseif contains(lines{k}, '<k>')
-                            lines{k} = sprintf('<k>%g</k>', matparam(matn,2));
-                        elseif contains(lines{k}, '</elastic>')
-                            break
-                        end
-                    end
-                    break
-                elseif contains(lines{j}, '<elastic type="HGO unconstrained">')
-                    % Modify <c> and <k>
-                    for k = j+1:j+10  % Look ahead maximum 10 lines
-                        if contains(lines{k}, '<c>')
-                            lines{k} = sprintf('<c>%g</c>', matparam(matn,1));
-                        elseif contains(lines{k}, '<k>')
-                            lines{k} = sprintf('<k>%g</k>', matparam(matn,2));
-                        elseif contains(lines{k}, '</elastic>')
-                            break
-                        end
-                    end
-                    break
-                end
-            end
-            break
-        end
-    end
-end
+lines = update_material_block_lines(lines, matparam_complete, model);
 
 % --- Save modified lines back to a unique .feb file for this run (parallel-safe change) ---
 unique_model_name = sprintf('modeltilde.feb', file_id); % <-- unique filename
