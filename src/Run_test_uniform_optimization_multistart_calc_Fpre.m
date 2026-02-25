@@ -91,7 +91,8 @@ source_cols = { 1, 1, 1,2, 2, 2, 3, 3, 3, 4, 4, 4, 1 2};
 weights = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,[1 0.0031]};   
 
 % Generating the ops struct
-ops = create_ops(target_rows, target_cols, source_rows, source_cols, weights);
+mat_size=[nMaterial,7];
+[ops,A,B] = create_ops(target_rows, target_cols, source_rows, source_cols, weights,mat_size);
 
 %% --- Set fmincon optimization options ---
 options = optimoptions('fmincon', ...
