@@ -9,7 +9,7 @@ src/: Core MATLAB scripts and functions, including optimization loops, stress co
 
 data/: Input files, such as FEBio model files (.feb) containing geometry and fiber definitions, and simulation log files. (Note: Large data files are ignored by Git to maintain repository efficiency).
 
-results/: Output directory for optimization results and generated .mat files.
+results/: Output directory for optimization results in the .txt fo;e.
 
 VF/: Cached virtual work components and deformation gradients stored as CSV and MAT files to optimize re-computation times.
 
